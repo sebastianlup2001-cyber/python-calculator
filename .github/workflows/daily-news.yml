@@ -1,0 +1,26 @@
+name: Raport Zilnic Stiri Economice
+
+on:
+  schedule:
+    - cron: "40 3 * * *"  # 06:40 ora Romaniei (UTC+3)
+  workflow_dispatch:       # permite rulare manuala din GitHub
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run news report
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python news_report.py
