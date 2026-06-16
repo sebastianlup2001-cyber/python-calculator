@@ -1,11 +1,11 @@
 # Calculator
 
-A simple Python calculator utlity with basic arithmetic operations.
+A simple Python calculator utility with basic arithmetic operations.
 
-## Fuctions
+## Functions
 
 - `add(a, b)` — returns the sum of a and b
-- `subtract(a, b)` — returns the diference of a and b
+- `subtract(a, b)` — returns the difference of a and b
 - `multiply(a, b)` — returns the product of a and b
 - `divide(a, b)` — returns the quotient of a and b
 
@@ -22,4 +22,4 @@ print(divide(10, 5))    # 2.0
 
 ## Notes
 
-- Divison by zero raises a `ValueError`
+- Division by zero raises a `ValueError`
