@@ -1,6 +1,8 @@
 import requests
 import smtplib
 import os
+import csv
+import io
 from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -10,22 +12,29 @@ ROMANIA_TZ = timezone(timedelta(hours=3))
 
 def fetch_high_impact_events():
     today = datetime.now(ROMANIA_TZ).strftime("%Y-%m-%d")
-    api_key = os.environ["FINNHUB_API_KEY"]
-    url = f"https://finnhub.io/api/v1/calendar/economic?from={today}&to={today}&token={api_key}"
+    api_key = os.environ["ALPHAVANTAGE_API_KEY"]
+    url = f"https://www.alphavantage.co/query?function=ECONOMIC_CALENDAR&horizon=1month&apikey={api_key}"
     resp = requests.get(url, timeout=15)
     resp.raise_for_status()
-    data = resp.json()
-    events = data.get("economicCalendar", [])
-    return [e for e in events if e.get("impact", "").lower() == "high"]
+
+    reader = csv.DictReader(io.StringIO(resp.text))
+    events = []
+    for row in reader:
+        if row.get("date", "") == today and row.get("importance", "").lower() == "high":
+            events.append(row)
+    return events
 
 
-def format_time(iso_time):
+def format_time(time_str):
+    if not time_str or time_str.strip() == "":
+        return "Toată ziua"
     try:
-        dt = datetime.fromisoformat(iso_time.replace("Z", "+00:00"))
-        dt_ro = dt.astimezone(ROMANIA_TZ)
+        dt = datetime.strptime(time_str, "%H:%M")
+        dt_utc = dt.replace(tzinfo=timezone.utc)
+        dt_ro = dt_utc.astimezone(ROMANIA_TZ)
         return dt_ro.strftime("%H:%M")
     except Exception:
-        return iso_time
+        return time_str
 
 
 def build_email(events, date_str):
@@ -45,22 +54,13 @@ def build_email(events, date_str):
     for ev in sorted(events, key=lambda e: e.get("time", "")):
         time = format_time(ev.get("time", ""))
         country = ev.get("country", "?")
-        event = ev.get("event", "?")
+        event = ev.get("event", ev.get("name", "?"))
         actual = ev.get("actual", "-") or "-"
         estimate = ev.get("estimate", "-") or "-"
-        prev = ev.get("prev", "-") or "-"
-        unit = ev.get("unit", "") or ""
-
-        def fmt(val):
-            if val == "-":
-                return "-"
-            try:
-                return f"{float(val):.2f}{unit}"
-            except Exception:
-                return str(val)
+        previous = ev.get("previous", "-") or "-"
 
         lines.append(f"⏰ {time} | 🏳️ {country} | {event}")
-        lines.append(f"   Actual: {fmt(actual)} | Prognoză: {fmt(estimate)} | Anterior: {fmt(prev)}\n")
+        lines.append(f"   Actual: {actual} | Prognoză: {estimate} | Anterior: {previous}\n")
 
     lines.append("---\nRaport generat automat de Claude Code.")
     return "\n".join(lines)
