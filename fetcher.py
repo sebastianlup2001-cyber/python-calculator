@@ -16,7 +16,15 @@ def fetch_high_impact_events():
 
     reader = csv.DictReader(io.StringIO(resp.text))
     events = []
+    today_all = []
     for row in reader:
-        if row.get("date", "") == today and row.get("importance", "").lower() == "high":
-            events.append(row)
+        if row.get("date", "") == today:
+            today_all.append(row)
+            if row.get("importance", "").lower() == "high":
+                events.append(row)
+
+    print(f"[DEBUG] Azi ({today}): {len(today_all)} evenimente total, {len(events)} de tip high.")
+    for row in today_all:
+        print(f"[DEBUG]   {row.get('time','')} | {row.get('country','')} | {row.get('event', row.get('name',''))} | importance={row.get('importance','')}")
+
     return events
